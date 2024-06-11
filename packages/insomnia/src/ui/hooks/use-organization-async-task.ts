@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useFetcher, useLocation } from 'react-router-dom';
 
 import { findPersonalOrganization, Organization } from '../../models/organization';
@@ -28,6 +28,10 @@ export const useAsyncTask = ({
     if (asyncTaskFetcher.state !== 'idle' && data?.error) {
       return 'error';
     }
+
+    if (asyncTaskFetcher.state === 'loading' || asyncTaskFetcher.state === 'submitting') {
+      return 'syncing';
+    }
     return asyncTaskFetcher.state;
   }, [asyncTaskFetcher.state, asyncTaskFetcher.data]);
 
@@ -35,7 +39,7 @@ export const useAsyncTask = ({
 
   const asyncTaskList = location.state?.asyncTaskList as AsyncTask[];
 
-  useEffect(() => {
+  const submitAction = useCallback(() => {
     console.log('asyncTaskList', asyncTaskList);
     if (asyncTaskList?.length) {
       console.log('run async task in useEffect');
@@ -54,5 +58,12 @@ export const useAsyncTask = ({
     }
   }, [asyncTaskList, asyncTaskFetcher.submit, userSession.id, personalOrganization?.id, organizationId, userSession.accountId]);
 
-  return asyncTaskStatus;
+  useEffect(() => {
+    submitAction();
+  }, [submitAction]);
+
+  return {
+    asyncTaskStatus,
+    runTask: submitAction,
+  };
 };

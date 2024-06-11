@@ -455,9 +455,9 @@ const OrganizationRoute = () => {
     projectId?: string;
     workspaceId?: string;
   };
-  const [status, setStatus] = useState<'online' | 'offline'>('online');
+  const [status, setStatus] = useState<'online' | 'offline'>(() => navigator.onLine ? 'online' : 'offline');
 
-  useAsyncTask({
+  const { asyncTaskStatus, runTask } = useAsyncTask({
     organizationId,
     organizations,
     userSession,
@@ -889,6 +889,30 @@ const OrganizationRoute = () => {
                       : 'Log in to Insomnia to sync your data.'}
                   </Tooltip>
                 </TooltipTrigger>
+                {/* The sync indicator only show when network status is online */}
+                {status !== 'offline' && (
+                  <TooltipTrigger>
+                    <Button
+                      className="px-4 py-1 h-full flex items-center justify-center gap-2 aria-pressed:bg-[--hl-sm] text-[--color-font] text-xs hover:bg-[--hl-xs] focus:ring-inset ring-1 ring-transparent focus:ring-[--hl-md] transition-all"
+                      onPress={() => {
+                        asyncTaskStatus === 'error' && runTask();
+                      }}
+                    >
+                      <Icon
+                        icon={asyncTaskStatus === 'syncing' ? 'spinner' : 'circle'}
+                        className={`${asyncTaskStatus === 'error' ? 'text-[--color-danger]' : 'text-[--color-success]'} w-5 ${asyncTaskStatus === 'syncing' ? 'animate-spin' : ''}`}
+                      />
+                      {asyncTaskStatus === 'syncing' ? 'Syncing' : (asyncTaskStatus === 'error' ? 'Sync Error' : 'Synced success')}
+                    </Button>
+                    <Tooltip
+                      placement="top"
+                      offset={8}
+                      className="border flex items-center gap-2 select-none text-sm min-w-max border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] text-[--color-font] px-4 py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
+                    >
+                      {asyncTaskStatus === 'syncing' ? 'Syncing' : (asyncTaskStatus === 'error' ? 'Sync Error, click to retry' : 'Synced success')}
+                    </Tooltip>
+                  </TooltipTrigger>
+                )}
                 <span className='w-[1px] h-full bg-[--hl-sm]' />
                 <Link>
                   <a
