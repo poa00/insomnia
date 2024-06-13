@@ -8,6 +8,7 @@ import {
   Heading,
   Input,
   Label,
+  Link,
   ListBox,
   ListBoxItem,
   Menu,
@@ -22,6 +23,8 @@ import {
   Select,
   SelectValue,
   TextField,
+  Tooltip,
+  TooltipTrigger,
 } from 'react-aria-components';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import {
@@ -34,6 +37,7 @@ import {
   useLoaderData,
   useNavigate,
   useParams,
+  useRouteLoaderData,
 } from 'react-router-dom';
 import { useLocalStorage } from 'react-use';
 
@@ -81,7 +85,7 @@ import { MockServerSettingsModal } from '../components/modals/mock-server-settin
 import { EmptyStatePane } from '../components/panes/project-empty-state-pane';
 import { TimeFromNow } from '../components/time-from-now';
 import { useInsomniaEventStreamContext } from '../context/app/insomnia-event-stream-context';
-import { OrganizationFeatureLoaderData, useOrganizationLoaderData } from './organization';
+import { OrganizationFeatureLoaderData, OrganizationLoaderData, useOrganizationLoaderData } from './organization';
 import { useRootLoaderData } from './root';
 
 interface TeamProject {
@@ -633,6 +637,7 @@ const ProjectRoute: FC = () => {
     }
   }, [organizationId, permissionsFetcher]);
 
+  const { currentPlan } = useRouteLoaderData('/organization') as OrganizationLoaderData;
   const { features, billing, storage } = permissionsFetcher.data || {
     features: {
       gitSync: { enabled: false, reason: 'Insomnia API unreachable' },
@@ -765,14 +770,15 @@ const ProjectRoute: FC = () => {
       },
     });
   };
-
+  const isEnterprise = currentPlan?.type.includes('enterprise');
+  const isCloudProjectOrEnterprisePlan = activeProject?.remoteId || isEnterprise;
+  const canCreateMockServer = activeProject?._id && isCloudProjectOrEnterprisePlan;
   const createNewMockServer = () => {
-    activeProject?._id &&
-    activeProject.remoteId
+    canCreateMockServer
       ? setIsMockServerSettingsModalOpen(true)
       : showModal(AlertModal, {
         title: 'Change Project',
-        message: 'Mock feature is only supported for Cloud projects.',
+        message: 'Mock feature is only supported for Cloud projects and Enterprise local projects.',
     });
   };
 
@@ -1340,9 +1346,17 @@ const ProjectRoute: FC = () => {
                               />
                             )}
                           </div>
-                          <Heading className="pt-4 text-lg font-bold line-clamp-2" title={item.name}>
-                            {item.name}
-                          </Heading>
+                          <TooltipTrigger>
+                            <Link onPress={e => e.continuePropagation()} className="pt-4 text-base font-bold line-clamp-4">
+                              {item.name}
+                            </Link>
+                            <Tooltip
+                              offset={8}
+                              className="border select-none text-sm max-w-xs border-solid border-[--hl-sm] shadow-lg bg-[--color-bg] text-[--color-font] px-4 py-2 rounded-md overflow-y-auto max-h-[85vh] focus:outline-none"
+                            >
+                              <span>{item.name}</span>
+                            </Tooltip>
+                          </TooltipTrigger>
                           <div className="flex-1 flex flex-col gap-2 justify-end text-sm text-[--hl]">
                             {item.version && (
                               <div className="flex-1 pt-2">
@@ -1369,6 +1383,7 @@ const ProjectRoute: FC = () => {
                               <div className="text-sm flex items-center gap-2 truncate">
                                 <Icon icon="clock" />
                                 <TimeFromNow
+                                  title={text => `Last updated ${text}, and created on ${new Date(item.created).toLocaleDateString()}`}
                                   timestamp={
                                     item.lastModifiedTimestamp
                                   }
