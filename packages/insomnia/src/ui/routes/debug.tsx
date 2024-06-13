@@ -161,8 +161,8 @@ const getRequestNameOrFallback = (doc: Request | RequestGroup | GrpcRequest | We
 };
 
 const RequestTiming = ({ requestId }: { requestId: string }) => {
-  const { isLoading } = useExecutionState({ requestId });
-  return isLoading ? <ConnectionCircle className='flex-shrink-0' data-testid="WebSocketSpinner__Connected" /> : null;
+  const { isExecuting } = useExecutionState({ requestId });
+  return isExecuting ? <ConnectionCircle className='flex-shrink-0' data-testid="WebSocketSpinner__Connected" /> : null;
 };
 
 export const Debug: FC = () => {
@@ -227,18 +227,6 @@ export const Debug: FC = () => {
   }, []);
 
   const { settings } = useRootLoaderData();
-  const [runningRequests, setRunningRequests] = useState<
-    Record<string, boolean>
-  >({});
-  const setLoading = (isLoading: boolean) => {
-    invariant(requestId, 'No active request');
-    if (Boolean(runningRequests?.[requestId]) !== isLoading) {
-      setRunningRequests({
-        ...runningRequests,
-        [requestId]: isLoading ? true : false,
-      });
-    }
-  };
 
   const grpcState = grpcStates.find(s => s.requestId === requestId);
   const setGrpcState = (newState: GrpcRequestState) =>
@@ -1311,7 +1299,6 @@ export const Debug: FC = () => {
                   <RequestPane
                     environmentId={activeEnvironment ? activeEnvironment._id : ''}
                     settings={settings}
-                    setLoading={setLoading}
                     onPaste={text => {
                       setPastedCurl(text);
                       setPasteCurlModalOpen(true);
